@@ -35,6 +35,9 @@ public class MainActivity extends ActivityScaner {
         Button btnhw= findViewById(R.id.btnhw);
         Button btnhf= findViewById(R.id.btnhf);
         Button btnfp= findViewById(R.id.btnfp);
+        Button btnfpSet=findViewById(R.id.btnfpSet);
+        Button btnfpFind=findViewById(R.id.btnfpFind);
+        Button btnfpClose=findViewById(R.id.btnfpClose);
         btnhw.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -74,6 +77,30 @@ public class MainActivity extends ActivityScaner {
                 txtcontent.setText("指纹指纹指纹指纹指纹指纹指纹指纹");
             }
         });
+        btnfpSet.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startTime = System.currentTimeMillis() ;
+                endTime = startTime ;
+                fpCharBuffer = mFingerHelper.CHAR_BUFFER_A ;
+                mHandler.postDelayed(enrollTask, 0);
+            }
+        });
+        btnfpFind.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startTime = System.currentTimeMillis() ;
+                endTime = startTime ;
+                //run match finger char task
+                mHandler.postDelayed(searchTask, 0);
+            }
+        });
+        btnfpClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mFingerHelper.close();
+            }
+        });
 
         mHandler = new Handler() {
             public void handleMessage(android.os.Message msg) {
@@ -90,7 +117,12 @@ public class MainActivity extends ActivityScaner {
                     String cardType = msg.getData().getString("cardType");
                     Util.play(1, 0 );
                     txtcontent.setText(uid+"---"+cardType);
+                }else if(msg.what== MSG_FP){
+                    String fpmsg = msg.getData().getString("fpmsg");
+                   // Util.play(1, 0 );
+                    txtcontent.setText(fpmsg);
                 }
+
             };
         };
     }

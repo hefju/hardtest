@@ -60,6 +60,7 @@ public abstract class ActivityScaner extends AppCompatActivity {
     protected  int portHf = 14 ;
     protected int powerHf = HFReader.POWER_PSAM ;
     protected final int MSG_HF = 1101 ;
+    protected final int MSG_FP = 1102 ;
     protected boolean HfInit() {
         byte[] uid14443 = null;
         List<ISO15693CardInfo> listCard15693 = null;
@@ -125,17 +126,17 @@ public abstract class ActivityScaner extends AppCompatActivity {
     /**
      * search finger in flash database
      */
-    private Runnable searchTask = new Runnable() {
+    protected Runnable searchTask = new Runnable() {
         @Override
         public void run() {
             String temp = ""  ;
             long timeCount = 0L ;
-            long startTime = 0L ;
-            long endTime = System.currentTimeMillis() ;
+             endTime = System.currentTimeMillis() ;
             timeCount = endTime - startTime ;
             //search finger time 10s
             if (timeCount > 10000) {
                 Log.i("jutest","get_finger_img_time_out");
+                sendMSG_fp("get_finger_img_time_out",MSG_FP);
                 return ;
             }
             int statues = mFingerHelper.getImage() ;
@@ -149,23 +150,116 @@ public abstract class ActivityScaner extends AppCompatActivity {
                     statues = mFingerHelper.search(mFingerHelper.CHAR_BUFFER_A, 0, 512, iMaddr);
                     if (statues == mFingerHelper.PS_OK) {
                         Log.i("jutest","finger_is_found");
+                        sendMSG_fp("finger_is_found",MSG_FP);
                     }else{
                         Log.i("jutest","no_found_finger_in_flash");
+                        sendMSG_fp("no_found_finger_in_flash",MSG_FP);
                     }
 
                 }
             } else if (statues == mFingerHelper.PS_NO_FINGER) {
                 Log.i("jutest","searching_finger");
+                sendMSG_fp("searching_finger",MSG_FP);
                 mHandler.postDelayed(searchTask, 100);
             } else if (statues == mFingerHelper.PS_GET_IMG_ERR) {
                 Log.i("jutest","get_img_error");
+                sendMSG_fp("get_img_error",MSG_FP);
                 return ;
             }else{
                 Log.i("jutest","dev_error"); //temp = res.getString(R.string.dev_error);
+                sendMSG_fp("dev_error",MSG_FP);
                 return ;
             }
         }
     } ;
+    private void sendMSG_fp(String content, int msgCode) {
+        //Log.e("jutest", "cardUid = " + cardUid);
+        Bundle bundle = new Bundle();
+        bundle.putString("fpmsg", content);
+        Message msg = new Message() ;
+        msg.setData(bundle);
+        msg.what = msgCode ;
+        mHandler.sendMessage(msg);
+    }
+
+    protected  int fpCharBuffer=1;
+    protected int templateNum = 0 ;
+    protected long startTime = 0L ;
+    protected long endTime = 0L ;
+    /**
+     * enroll finger char to flash database
+     */
+    protected Runnable enrollTask  = new Runnable() {
+        @Override
+        public void run() {
+            String temp = ""  ;
+            long timeCount = 0L ;
+            endTime = System.currentTimeMillis() ;
+            timeCount = endTime - startTime ;
+            //search finger time 10s
+            if (timeCount > 10000) {
+                Log.i("jutest","get_finger_img_time_out");
+                sendMSG_fp("get_finger_img_time_out",MSG_FP);
+                return ;
+            }
+            int  statues = mFingerHelper.getImage() ;
+            //find finger
+            if (statues == mFingerHelper.PS_OK) {
+                //first finger
+                if (fpCharBuffer == mFingerHelper.CHAR_BUFFER_A) {
+                    //gen char to bufferA
+                    statues = mFingerHelper.genChar(fpCharBuffer);
+                    if (statues == mFingerHelper.PS_OK) {
+                        int[] iMaddr = {0, 0} ;
+                        //is exist flash database,database size = 512
+                        statues = mFingerHelper.search(mFingerHelper.CHAR_BUFFER_A, 0, 512, iMaddr);
+                        if (statues == mFingerHelper.PS_OK) {
+                            sendMSG_fp("already_exist_flash",MSG_FP);
+                            return ;
+                        }
+                        sendMSG_fp("gen_finger_buffer_a_press_again",MSG_FP);
+                        fpCharBuffer = mFingerHelper.CHAR_BUFFER_B ;
+                        mHandler.postDelayed(enrollTask, 2000);
+                    }
+                } else if (fpCharBuffer == mFingerHelper.CHAR_BUFFER_B) { //second finger
+                    //gen char to bufferB
+                    statues = mFingerHelper.genChar(fpCharBuffer);
+                    if (statues == mFingerHelper.PS_OK) {
+                        sendMSG_fp("gen_char",MSG_FP);
+
+                        //merge BUFFER_A with BUFFER_B , gen template to MODULE_BUFFER
+                        mFingerHelper.regTemplate() ;
+                        int[] iMbNum = {0, 0} ;
+                        mFingerHelper.getTemplateNum(iMbNum);
+                        templateNum = iMbNum[0];
+                        if (templateNum >= 512) {
+                            sendMSG_fp("flash_database_full",MSG_FP);
+                            return ;
+                        }
+                        //store template to flash database
+                        statues =  mFingerHelper.storeTemplate(mFingerHelper.MODEL_BUFFER, templateNum);
+                        if (statues == mFingerHelper.PS_OK) {
+                            sendMSG_fp("enroll_success",MSG_FP);
+                        }else{
+                            sendMSG_fp("enroll_fail",MSG_FP);
+                        }
+
+                    }
+                }
+
+            } else if (statues == mFingerHelper.PS_NO_FINGER) {
+                sendMSG_fp("searching_finger",MSG_FP);
+                mHandler.postDelayed(enrollTask, 100);
+            } else if (statues == mFingerHelper.PS_GET_IMG_ERR) {
+                sendMSG_fp("get_img_error",MSG_FP);
+                return ;
+            }else{
+                sendMSG_fp("dev_error",MSG_FP);
+                return ;
+            }
+        }
+    } ;
+
 
 
     //IUsbConnState is to receive usb finger connect state

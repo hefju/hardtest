@@ -8,6 +8,8 @@ package com.za.finger;
 import android.app.Activity;
 import android.content.Context;
 
+import cn.pda.serialport.SerialPort;
+
 
 public class FingerHelper {
     public final int VendorId0 = 8457;
