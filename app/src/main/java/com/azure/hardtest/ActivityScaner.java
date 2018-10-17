@@ -14,10 +14,11 @@ import android.view.KeyEvent;
 import com.pda.hf.HFReader;
 import com.pda.hf.HfConvert;
 import com.pda.hf.ISO15693CardInfo;
+import com.za.finger.FingerHelper;
+import com.za.finger.IUsbConnState;
 
 import java.util.List;
 
-import UtilAndroid.Util;
 import cn.pda.scan.ScanThread;
 
 public abstract class ActivityScaner extends AppCompatActivity {
@@ -54,10 +55,10 @@ public abstract class ActivityScaner extends AppCompatActivity {
         IsInfrInit=true;//已经进行初始化了.
         return  true;
     }
-    private HFReader hfReader ;//hf读卡
+    protected HFReader hfReader ;//hf读卡
 
-    private  int portHf = 14 ;
-    private int powerHf = HFReader.POWER_PSAM ;
+    protected  int portHf = 14 ;
+    protected int powerHf = HFReader.POWER_PSAM ;
     protected final int MSG_HF = 1101 ;
     protected boolean HfInit() {
         byte[] uid14443 = null;
@@ -105,9 +106,93 @@ public abstract class ActivityScaner extends AppCompatActivity {
         msg.what = msgCode ;
         mHandler.sendMessage(msg);
     }
+
+    protected FingerHelper mFingerHelper ;  //option finger
     protected boolean FpInit() {
-        return  false;
+        if(!IsFpInit) {
+            mFingerHelper = new FingerHelper(this, usbConnstate);
+            mFingerHelper.init();
+            return false;
+        }
+        long  startTime = System.currentTimeMillis() ;
+        long endTime = startTime ;
+        //run match finger char task
+        mHandler.postDelayed(searchTask, 0);
+
+        IsFpInit=true;
+        return  true;
     }
+    /**
+     * search finger in flash database
+     */
+    private Runnable searchTask = new Runnable() {
+        @Override
+        public void run() {
+            String temp = ""  ;
+            long timeCount = 0L ;
+            long startTime = 0L ;
+            long endTime = System.currentTimeMillis() ;
+            timeCount = endTime - startTime ;
+            //search finger time 10s
+            if (timeCount > 10000) {
+                Log.i("jutest","get_finger_img_time_out");
+                return ;
+            }
+            int statues = mFingerHelper.getImage() ;
+            //find finger
+            if (statues == mFingerHelper.PS_OK) {
+                //gen char to bufferA
+                statues = mFingerHelper.genChar(mFingerHelper.CHAR_BUFFER_A);
+                if (statues == mFingerHelper.PS_OK) {
+                    int[] iMaddr = {0, 0} ;
+                    //is exist flash database,database size = 512
+                    statues = mFingerHelper.search(mFingerHelper.CHAR_BUFFER_A, 0, 512, iMaddr);
+                    if (statues == mFingerHelper.PS_OK) {
+                        Log.i("jutest","finger_is_found");
+                    }else{
+                        Log.i("jutest","no_found_finger_in_flash");
+                    }
+
+                }
+            } else if (statues == mFingerHelper.PS_NO_FINGER) {
+                Log.i("jutest","searching_finger");
+                mHandler.postDelayed(searchTask, 100);
+            } else if (statues == mFingerHelper.PS_GET_IMG_ERR) {
+                Log.i("jutest","get_img_error");
+                return ;
+            }else{
+                Log.i("jutest","dev_error"); //temp = res.getString(R.string.dev_error);
+                return ;
+            }
+        }
+    } ;
+
+
+    //IUsbConnState is to receive usb finger connect state
+    private IUsbConnState usbConnstate = new IUsbConnState() {
+        @Override
+        public void onUsbConnected() {
+            //Loger.e(tag, "onUsbConnected()");
+            //connect finger device
+            int statues =  mFingerHelper.connectFingerDev() ;
+            if (statues == mFingerHelper.CONNECT_OK) {
+                Log.i("jutest","conn_dev_success");
+            }else{
+                Log.i("jutest","conn_dev_fail");
+            }
+            //setAllBtnEnable(true, btnOpen, false);
+        }
+
+        @Override
+        public void onUsbPermissionDenied() {
+            Log.i("jutest","usb_perssion_deny");
+        }
+
+        @Override
+        public void onDeviceNotFound() {
+            Log.i("jutest","dev_not_found");
+        }
+    } ;
 
     /**
      * 按键广播接收者 用于接受按键广播 触发扫描

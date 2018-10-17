@@ -85,7 +85,7 @@ public class MainActivity extends ActivityScaner {
                     //   addListView();
                     txtcontent.setText(data);
                     Util.play(1, 0);
-                }else if(msg.what== MSG_CARD){
+                }else if(msg.what== MSG_HF){
                     String uid = msg.getData().getString("uid");
                     String cardType = msg.getData().getString("cardType");
                     Util.play(1, 0 );
@@ -119,6 +119,9 @@ public class MainActivity extends ActivityScaner {
         }
         //注销广播接收者
         unregisterReceiver(keyReceiver);
+
+        hfReader.close(portHf);//关闭hf
+        mFingerHelper.close();//关闭指纹
         super.onDestroy();
     }
 
