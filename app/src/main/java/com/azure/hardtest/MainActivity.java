@@ -64,6 +64,7 @@ public class MainActivity extends ActivityScaner {
                 txtcontent.setText("HFHFHFHFHFHFHFHFHFHFHFHFHFHF");
             }
         });
+        //启动指纹
         btnfp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -77,6 +78,7 @@ public class MainActivity extends ActivityScaner {
                 txtcontent.setText("指纹指纹指纹指纹指纹指纹指纹指纹");
             }
         });
+        //登记指纹
         btnfpSet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -86,6 +88,7 @@ public class MainActivity extends ActivityScaner {
                 mHandler.postDelayed(enrollTask, 0);
             }
         });
+        //查找指纹
         btnfpFind.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -95,6 +98,7 @@ public class MainActivity extends ActivityScaner {
                 mHandler.postDelayed(searchTask, 0);
             }
         });
+        //关闭指纹
         btnfpClose.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

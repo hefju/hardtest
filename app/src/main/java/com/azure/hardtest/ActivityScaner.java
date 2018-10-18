@@ -111,15 +111,19 @@ public abstract class ActivityScaner extends AppCompatActivity {
     protected FingerHelper mFingerHelper ;  //option finger
     protected boolean FpInit() {
         if(!IsFpInit) {
-            mFingerHelper = new FingerHelper(this, usbConnstate);
-            mFingerHelper.init();
-            return false;
+            try {
+                mFingerHelper = new FingerHelper(this, usbConnstate);
+                mFingerHelper.init();
+            }catch (Exception e){
+                Log.e("jutest",e.getMessage());
+                sendMSG_fp("指纹启动失败",MSG_FP);
+                return false;
+            }
         }
-        long  startTime = System.currentTimeMillis() ;
-        long endTime = startTime ;
-        //run match finger char task
-        mHandler.postDelayed(searchTask, 0);
-
+//        long  startTime = System.currentTimeMillis() ;
+//        long endTime = startTime ;
+//        //run match finger char task
+//        mHandler.postDelayed(searchTask, 0);
         IsFpInit=true;
         return  true;
     }
@@ -140,6 +144,10 @@ public abstract class ActivityScaner extends AppCompatActivity {
                 return ;
             }
             int statues = mFingerHelper.getImage() ;
+            if(statues!=0){
+                sendMSG_fp("指纹启动失败.",MSG_FP);
+                return;
+            }
             //find finger
             if (statues == mFingerHelper.PS_OK) {
                 //gen char to bufferA
@@ -203,6 +211,10 @@ public abstract class ActivityScaner extends AppCompatActivity {
                 return ;
             }
             int  statues = mFingerHelper.getImage() ;
+            if(statues!=0){
+                sendMSG_fp("指纹启动失败.",MSG_FP);
+                return;
+            }
             //find finger
             if (statues == mFingerHelper.PS_OK) {
                 //first finger
